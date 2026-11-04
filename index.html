@@ -17,7 +17,7 @@
       <a href="#how">How it works</a>
       <a href="#demo">Live replay</a>
       <a href="#anatomy">Anatomy</a>
-      <a href="#efficiency">What loads</a>
+      <a href="#efficiency">Efficiency</a>
       <a href="#guardrails">Guardrails</a>
       <a href="#rigor">Rigor</a>
       <a href="#catalog">Catalog</a>
@@ -114,8 +114,22 @@
 </section>
 
 <section id="efficiency" class="wrap">
-  <h2>What loads, and what doesn't</h2>
-  <p class="sub">The design keeps most instruction text out of a conversation until a request needs it. These are file facts from the repository (line counts), not usage or cost figures.</p>
+  <h2>Efficiency: three ways to work with an agent</h2>
+  <p class="sub">The same task, three ways. <strong>Prompting</strong> is an agent with no instructions that you correct over and over. <strong>Loading instructions</strong> is a trained agent that reads every instruction file every time. <strong>Routing</strong> is a trained agent that reads only the files the request needs.</p>
+  <div class="compare" id="compare">
+    <div class="bars" id="bars" aria-live="polite"></div>
+    <details class="assume" open>
+      <summary>Illustrative model: change the assumptions</summary>
+      <p class="note">Two things are measured from this repository: how much instruction text each approach puts in front of the agent per turn, and that routing loads one skill while loading-everything loads all of them. The other two inputs are <em>assumptions</em>, because no file in a repository can say how many attempts a task takes or how large a conversation grows. Set them from your own experience, or from a Copilot usage report for a real task.</p>
+      <div class="sliders">
+        <label>Attempts to finish with plain prompting: <output id="o-t1">8</output><input id="t1" type="range" min="1" max="20" step="1" value="8"></label>
+        <label>Attempts to finish with trained instructions: <output id="o-t2">3</output><input id="t2" type="range" min="1" max="20" step="1" value="3"></label>
+        <label>Conversation added per attempt, in lines (prompt, reply, code read): <output id="o-c">400</output><input id="c" type="range" min="20" max="2000" step="20" value="400"></label>
+      </div>
+      <p class="note" id="formula"></p>
+    </details>
+  </div>
+  <h3 class="h3gap">What loads, and what doesn't</h3>
   <div class="loads" id="loads"></div>
   <div class="grid3">
     <article class="card"><h3>Lazy-loaded MCP guidance</h3><p>The MCP guidance used to be one 1,027-line file loaded up front. It is now a <span data-bind="loads.mcpIndexLines"></span>-line index plus one file per server, read only when that server is used.</p></article>

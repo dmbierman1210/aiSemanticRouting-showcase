@@ -200,7 +200,35 @@
     ];
     $('#loads').innerHTML = '<table><caption class="sr">What loads for a request</caption><tbody>' + rows.map(function (r) {
       return '<tr><th scope="row">' + esc(r[0]) + '</th><td>' + esc(r[1]) + '</td><td class="n">' + esc(r[2]) + '</td></tr>';
-    }).join('') + '</tbody></table><p class="note">Line counts of the files in this repository. They are not token counts, and nothing here claims a saving in usage, cost or premium requests: that depends on the model, the conversation and your plan.</p>';
+    }).join('') + '</tbody></table><p class="note">Line counts of the files in this repository. They are not token counts.</p>';
+
+    var instr2 = L.routerLines + L.totalSkillLines;
+    var instr3 = L.routerLines + L.catalogLines + L.avgSkillLines;
+    D.savePct = Math.round(100 * (1 - instr3 / instr2));
+    function pctLess(a, b) { var d = Math.round(100 * (1 - a / b)); return d >= 0 ? d + '% less than' : Math.abs(d) + '% more than'; }
+    function render() {
+      var t1 = +$('#t1').value, t2 = +$('#t2').value, c = +$('#c').value;
+      $('#o-t1').textContent = t1; $('#o-t2').textContent = t2; $('#o-c').textContent = fmt(c);
+      var conv = function (t) { return c * t * (t + 1) / 2; };
+      var bars = [
+        { name: 'Prompting', sub: 'plain agent, corrected over and over', instr: 0, conv: conv(t1), attempts: t1 },
+        { name: 'Loading instructions', sub: 'trained agent, every instruction file every time', instr: t2 * instr2, conv: conv(t2), attempts: t2 },
+        { name: 'Routing', sub: 'trained agent, only the files the request needs', instr: t2 * instr3, conv: conv(t2), attempts: t2 }
+      ];
+      bars.forEach(function (b) { b.total = b.instr + b.conv; });
+      var max = Math.max.apply(null, bars.map(function (b) { return b.total; }));
+      var html = bars.map(function (b, i) {
+        var w = 100 * b.total / max, wi = 100 * b.instr / max, wc = 100 * b.conv / max;
+        return '<div class="barrow"><b>' + esc(b.name) + ' <span class="pct">' + Math.round(w) + '%</span><span class="bsub">' + esc(b.sub) + '</span></b>' +
+          '<div class="track" role="img" aria-label="' + esc(b.name) + ': ' + Math.round(w) + ' percent of the largest bar"><div class="seg instr" style="width:' + wi.toFixed(2) + '%"></div><div class="seg conv" style="width:' + wc.toFixed(2) + '%"></div></div></div>';
+      }).join('');
+      html += '<div class="legend"><span><i class="sw instr"></i> instruction text read each attempt (measured file sizes)</span><span><i class="sw conv"></i> conversation re-read each attempt (assumed)</span></div>';
+      html += '<p class="verdict">Routing is <strong>' + pctLess(bars[2].total, bars[1].total) + '</strong> loading all instructions and <strong>' + pctLess(bars[2].total, bars[0].total) + '</strong> plain prompting, <em>under the assumptions below</em>. Measured on its own, routing puts <strong>' + D.savePct + '% less</strong> instruction text in front of the agent per attempt than loading everything.</p>';
+      $('#bars').innerHTML = html;
+      $('#formula').textContent = 'Model: each attempt re-reads the instruction text plus every earlier attempt. Cost = attempts \u00d7 instruction lines + conversation \u00d7 attempts \u00d7 (attempts + 1) \u00f7 2. Instruction lines per attempt: prompting 0, loading ' + fmt(instr2) + ' (router plus all ' + fmt(L.skillFiles) + ' skill files), routing ' + fmt(instr3) + ' (router, ' + fmt(L.catalogCount) + ' catalog entries, one average skill). Bars are percentages of the largest, so no token or cost number is implied; real usage depends on the model and your plan.';
+    }
+    ['t1', 't2', 'c'].forEach(function (id) { $('#' + id).addEventListener('input', render); });
+    render();
   })();
 
   // ---- Guardrails ----
@@ -252,7 +280,7 @@
   [
     ['Agent and prompt design', fmt(D.stats.skills) + ' focused skills, each with explicit trigger and non-trigger wording, matched on a one-line description instead of a dispatch table.'],
     ['Testing things that are not code', fmt(D.stats.testSuites) + ' suites plus a ' + fmt(D.stats.triggerCases) + '-prompt corpus catch a description edit that would send a request to the wrong skill.'],
-    ['Lazy-loading architecture', 'Lazy loading, three escalation tiers and a handoff note keep most instruction text out of a conversation until a request needs it.'],
+    ['Lazy-loading architecture', 'Lazy loading, three escalation tiers and a handoff note keep most instruction text out of a conversation until a request needs it: ' + D.savePct + '% less instruction text per attempt than loading every file (measured from file sizes).'],
     ['Tooling and release engineering', 'A scripted installer with a doctor and upgrade migrations, one version source stamped across every document, and ' + fmt(D.stats.releases) + ' changelogged releases.'],
     ['Safety and judgment', 'Hard limits where they matter: nothing merges itself, risky actions need explicit confirmation, and autonomy is opt-in.'],
     ['Communication', 'The same material is written for a skim (this page), for operators (setup and upgrade guides) and for agents (the skills themselves).']
