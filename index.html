@@ -17,7 +17,7 @@
       <a href="#how">How it works</a>
       <a href="#demo">Live replay</a>
       <a href="#anatomy">Anatomy</a>
-      <a href="#efficiency">Efficiency</a>
+      <a href="#efficiency">What loads</a>
       <a href="#guardrails">Guardrails</a>
       <a href="#rigor">Rigor</a>
       <a href="#catalog">Catalog</a>
@@ -42,13 +42,13 @@
 
 <section id="how" class="wrap">
   <h2>How it works</h2>
-  <p class="sub">Three layers, each paying its token cost only when it is needed.</p>
+  <p class="sub">Three layers, each loaded only when it is needed.</p>
   <div class="flow" role="img" aria-label="A message passes the always-on router, then the skill catalog, which either loads one skill, consults the playbook when several skills overlap, or loads nothing when none match.">
     <div class="node msg"><b>Your message</b><small>"Fix this failing build"</small></div>
     <div class="arrow" aria-hidden="true">&rarr;</div>
-    <div class="node router"><b>Always-on router</b><small>meta-policy only<br>&asymp; <span data-bind="budget.alwaysOnTokens"></span> tokens</small></div>
+    <div class="node router"><b>Always-on router</b><small>meta-policy only<br><span data-bind="loads.routerLines"></span> lines</small></div>
     <div class="arrow" aria-hidden="true">&rarr;</div>
-    <div class="node catalog"><b>Skill catalog</b><small><span data-bind="budget.catalogCount"></span> one-line descriptions<br>&asymp; <span data-bind="budget.catalogTokens"></span> tokens</small></div>
+    <div class="node catalog"><b>Skill catalog</b><small><span data-bind="loads.catalogCount"></span> names and one-line descriptions<br>no skill bodies</small></div>
     <div class="arrow" aria-hidden="true">&rarr;</div>
     <div class="branches">
       <div class="node ok"><b>One match</b><small>load that one SKILL.md</small></div>
@@ -85,7 +85,7 @@
         <button id="auto" class="ghost" type="button" aria-pressed="false">Auto-play all</button>
       </div>
       <div id="term" class="term" role="log" aria-live="polite" aria-label="Routing replay output" tabindex="0"></div>
-      <p class="note">Token figures are estimates (bytes &divide; 4) taken from the real files. Matching shown here is what the test corpus expects; a real model decides at run time, which is why the corpus is also checked in CI.</p>
+      <p class="note">Line counts are read from the real files. This replay shows which files load; it says nothing about token use, cost or premium requests, which depend on the model, the conversation and your plan. Matching shown here is what the test corpus expects; a real model decides at run time, which is why the corpus is also checked in CI.</p>
     </div>
   </div>
 </section>
@@ -114,11 +114,11 @@
 </section>
 
 <section id="efficiency" class="wrap">
-  <h2>Efficiency</h2>
-  <p class="sub">Context is the budget. The design spends it only on what the current request needs.</p>
-  <div class="bars" id="bars"></div>
+  <h2>What loads, and what doesn't</h2>
+  <p class="sub">The design keeps most instruction text out of a conversation until a request needs it. These are file facts from the repository (line counts), not usage or cost figures.</p>
+  <div class="loads" id="loads"></div>
   <div class="grid3">
-    <article class="card"><h3>Lazy-loaded MCP guidance</h3><p>The MCP guidance used to be one 1,027-line file loaded up front. It is now a <span data-bind="budget.mcpIndexLines"></span>-line index plus one file per server, read only when that server is used.</p></article>
+    <article class="card"><h3>Lazy-loaded MCP guidance</h3><p>The MCP guidance used to be one 1,027-line file loaded up front. It is now a <span data-bind="loads.mcpIndexLines"></span>-line index plus one file per server, read only when that server is used.</p></article>
     <article class="card"><h3>Three escalation tiers</h3><p>Do it inline. For heavy read-only batches, delegate to a cheap in-assistant worker. Hand off to a second agent only when your own budget is the constraint, using a short <code>HANDOFF.md</code> note so nothing is lost.</p></article>
     <article class="card"><h3>Match the model to the task</h3><p>Pattern-following work (reviews, docs, stories) runs on cheaper models; multi-step reasoning is reserved for stronger ones, and each skill says which.</p></article>
   </div>

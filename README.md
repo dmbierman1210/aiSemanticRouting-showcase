@@ -1,6 +1,6 @@
 # Copilot Instruction Router: Open showcase
 
-A generated, static GitHub Pages site: an interactive, pre-computed replay of how the router matches a request to a skill, with skill excerpts, token-budget numbers, guardrails and the test-suite list. It makes no model calls and no external requests.
+A generated, static GitHub Pages site: an interactive, pre-computed replay of how the router matches a request to a skill, with skill excerpts, file facts, guardrails and the test-suite list. It makes no model calls and no external requests.
 
 - Repository: https://github.com/dmbierman1210/aiSemanticRouting-showcase
 - Live site: https://dmbierman1210.github.io/aiSemanticRouting-showcase/

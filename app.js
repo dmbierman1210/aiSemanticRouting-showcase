@@ -69,29 +69,27 @@
 
   function steps(p) {
     var s = [];
-    var all = D.budget.allSkillsTokens, on = D.budget.alwaysOnTokens;
+    var L = D.loads;
     s.push({ tag: 'you', cls: 'k-you', html: esc(p.prompt), wait: 700 });
-    s.push({ tag: 'router', cls: 'k-router', html: 'always-on policy loaded <em>(&asymp; ' + fmt(on) + ' tokens)</em>', wait: 650 });
-    s.push({ tag: 'catalog', cls: 'k-load', html: 'scanning ' + fmt(D.budget.catalogCount) + ' skill descriptions <em>(&asymp; ' + fmt(D.budget.catalogTokens) + ' tokens)</em>. No skill body is loaded yet.', wait: 800 });
+    s.push({ tag: 'router', cls: 'k-router', html: 'always-on policy loaded <em>(' + fmt(L.routerLines) + ' lines)</em>', wait: 650 });
+    s.push({ tag: 'catalog', cls: 'k-load', html: 'scanning ' + fmt(L.catalogCount) + ' skill names and descriptions. No skill file is opened yet.', wait: 800 });
     if (p.kind === 'near') {
       s.push({ tag: 'overlap', cls: 'k-warn', html: 'wording overlaps <b>' + esc(p.looksLike) + '</b>. Boundary check against its "not for" scope...', wait: 900 });
     }
     var sk = p.skill ? byName[p.skill] : null;
     if (!sk) {
       s.push({ tag: 'no match', cls: 'k-warn', html: 'no skill owns this. Falls through to <b>router-playbook</b> "No-Match Behavior": proceed as a plain assistant.', wait: 800 });
-      s.push({ tag: 'skipped', cls: 'k-skip', html: 'all ' + fmt(D.skills.length) + ' skill bodies stay on disk <em>(&asymp; ' + fmt(all) + ' tokens not loaded)</em>', wait: 700 });
-      s.push({ tag: 'done', cls: 'k-done', html: 'routed with zero skill tokens spent.', wait: 0 });
+      s.push({ tag: 'skipped', cls: 'k-skip', html: 'none of the ' + fmt(L.skillFiles) + ' skill files is opened', wait: 700 });
+      s.push({ tag: 'done', cls: 'k-done', html: 'routed without loading a skill.', wait: 0 });
       return s;
     }
     s.push({ tag: 'match', cls: 'k-match', html: '<b>' + esc(sk.name) + '</b><br>' + esc(shorten(sk.description, 190)), wait: 900 });
-    s.push({ tag: 'load', cls: 'k-load', html: 'SKILL.md loaded: ' + fmt(sk.lines) + ' lines <em>(&asymp; ' + fmt(sk.tokens) + ' tokens)</em>', wait: 800 });
+    s.push({ tag: 'load', cls: 'k-load', html: 'SKILL.md loaded: ' + fmt(sk.lines) + ' lines', wait: 800 });
     if (sk.outline.length) {
       s.push({ tag: 'workflow', cls: 'k-load', html: 'the skill will now follow:', wait: 450 });
       sk.outline.slice(0, 6).forEach(function (h, i) { s.push({ tag: '', cls: 'sub', html: (i + 1) + '. ' + esc(h), wait: 260 }); });
     }
-    var avoided = all - sk.tokens;
-    var pct = Math.round(100 * avoided / (on + all));
-    s.push({ tag: 'skipped', cls: 'k-skip', html: fmt(D.skills.length - 1) + ' other skills stay on disk <em>(&asymp; ' + fmt(avoided) + ' tokens not loaded, ' + pct + '% less than preloading everything)</em>', wait: 800 });
+    s.push({ tag: 'skipped', cls: 'k-skip', html: fmt(L.skillFiles - 1) + ' other skill files stay on disk <em>(' + fmt(L.totalSkillLines - sk.lines) + ' lines not opened)</em>', wait: 800 });
     s.push({ tag: 'done', cls: 'k-done', html: 'routed.', wait: 0 });
     return s;
   }
@@ -173,12 +171,12 @@
   }
 
   function showExcerpt(ex) {
-    var sk = byName[ex.name] || { outline: [], lines: ex.totalLines, tokens: 0 };
+    var sk = byName[ex.name] || { outline: [], lines: ex.totalLines };
     $('#exCode').innerHTML = highlight(ex.text);
     var shown = ex.text.split('\n').length;
     $('#exMore').textContent = 'Showing the first ' + shown + ' of ' + fmt(ex.totalLines) + ' lines of ' + ex.name + '/SKILL.md.';
     $('#exName').textContent = ex.name;
-    $('#exMeta').textContent = fmt(sk.lines) + ' lines \u00b7 \u2248 ' + fmt(sk.tokens) + ' tokens when loaded';
+    $('#exMeta').textContent = fmt(sk.lines) + ' lines';
     $('#exOutline').innerHTML = sk.outline.map(function (h) { return '<li>' + esc(h) + '</li>'; }).join('');
     $$('#exTabs button').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-n') === ex.name ? 'true' : 'false'); });
   }
@@ -190,27 +188,19 @@
   });
   if (D.excerpts.length) showExcerpt(D.excerpts[0]);
 
-  // ---- Efficiency ----
+  // ---- What loads ----
   (function () {
-    var b = D.budget;
-    var full = b.alwaysOnTokens + b.allSkillsTokens;
-    var typical = b.alwaysOnTokens + b.catalogTokens + b.avgSkillTokens;
-    var save = Math.round(100 * (1 - typical / full));
-    function row(title, parts, total) {
-      var segs = parts.map(function (p) { return '<div class="seg ' + p.c + '" data-w="' + (100 * p.v / full).toFixed(2) + '" title="' + esc(p.l) + ': ' + fmt(p.v) + ' tokens"></div>'; }).join('');
-      var key = parts.map(function (p) { return '<span><i class="sw ' + p.c + '"></i> ' + esc(p.l) + ' ' + fmt(p.v); }).join('</span>') + '</span>';
-      return '<div class="barrow"><b>' + esc(title) + ' <span style="color:var(--muted);font-weight:400">&asymp; ' + fmt(total) + ' tokens</span></b><div class="track">' + segs + '</div><div class="legend" style="margin-top:6px">' + key + '</div></div>';
-    }
-    $('#bars').innerHTML =
-      row('Preload every skill, every time', [{ l: 'router', v: b.alwaysOnTokens, c: 'a' }, { l: 'all skill bodies', v: b.allSkillsTokens, c: 'd' }], full) +
-      row('This router, a typical request', [{ l: 'router', v: b.alwaysOnTokens, c: 'a' }, { l: 'catalog', v: b.catalogTokens, c: 'b' }, { l: 'one skill', v: b.avgSkillTokens, c: 'c' }], typical) +
-      '<div class="legend"><span class="save">About ' + save + '% less context for a typical request.</span><span>"Typical" uses the average workflow skill body. MCP guidance is loaded on top only when a server is used.</span></div>';
-    var fill = function () { $$('.seg').forEach(function (s) { s.style.width = s.getAttribute('data-w') + '%'; }); };
-    if ('IntersectionObserver' in window) {
-      var io = new IntersectionObserver(function (en) { if (en[0].isIntersecting) { fill(); io.disconnect(); } }, { threshold: 0.3 });
-      io.observe($('#bars'));
-    } else { fill(); }
-    D.savePct = save;
+    var L = D.loads;
+    var rows = [
+      ['Always loaded', 'The router policy file', fmt(L.routerLines) + ' lines'],
+      ['Seen up front', fmt(L.catalogCount) + ' skill names with one-line descriptions', 'no skill bodies'],
+      ['Loaded on a match', 'One SKILL.md, the one that matches', 'typically ' + fmt(L.avgSkillLines) + ' lines (smallest ' + fmt(L.minSkillLines) + ', largest ' + fmt(L.maxSkillLines) + ')'],
+      ['Stays on disk', 'Every other skill file, until a request needs it', fmt(L.totalSkillLines) + ' lines across all ' + fmt(L.skillFiles) + ' skill files'],
+      ['Only when a server is used', 'MCP guidance: an index plus one file per server', fmt(L.mcpIndexLines) + '-line index, ' + fmt(L.mcpFiles) + ' server files']
+    ];
+    $('#loads').innerHTML = '<table><caption class="sr">What loads for a request</caption><tbody>' + rows.map(function (r) {
+      return '<tr><th scope="row">' + esc(r[0]) + '</th><td>' + esc(r[1]) + '</td><td class="n">' + esc(r[2]) + '</td></tr>';
+    }).join('') + '</tbody></table><p class="note">Line counts of the files in this repository. They are not token counts, and nothing here claims a saving in usage, cost or premium requests: that depends on the model, the conversation and your plan.</p>';
   })();
 
   // ---- Guardrails ----
@@ -252,7 +242,7 @@
     $('#cat').innerHTML = rows.length ? rows.map(function (s) {
       return '<article class="skill"><h3>' + esc(s.name) + '<span class="kind ' + s.kind + '">' + s.kind + '</span></h3>' +
         '<details><summary>' + esc(shorten(s.description, 150)) + '</summary><p>' + esc(s.description) + '</p></details>' +
-        '<div class="m">' + fmt(s.lines) + ' lines &middot; &asymp; ' + fmt(s.tokens) + ' tokens' + (s.helperOf.length ? ' &middot; used by ' + esc(s.helperOf.join(', ')) : '') + '</div></article>';
+        '<div class="m">' + fmt(s.lines) + ' lines' + (s.helperOf.length ? ' &middot; used by ' + esc(s.helperOf.join(', ')) : '') + '</div></article>';
     }).join('') : '<p class="empty">No skills match.</p>';
   }
   $('#q').addEventListener('input', renderCatalog);
@@ -262,7 +252,7 @@
   [
     ['Agent and prompt design', fmt(D.stats.skills) + ' focused skills, each with explicit trigger and non-trigger wording, matched on a one-line description instead of a dispatch table.'],
     ['Testing things that are not code', fmt(D.stats.testSuites) + ' suites plus a ' + fmt(D.stats.triggerCases) + '-prompt corpus catch a description edit that would send a request to the wrong skill.'],
-    ['Cost-aware architecture', 'Lazy loading, three escalation tiers and a handoff note: about ' + D.savePct + '% less context for a typical request than preloading everything.'],
+    ['Lazy-loading architecture', 'Lazy loading, three escalation tiers and a handoff note keep most instruction text out of a conversation until a request needs it.'],
     ['Tooling and release engineering', 'A scripted installer with a doctor and upgrade migrations, one version source stamped across every document, and ' + fmt(D.stats.releases) + ' changelogged releases.'],
     ['Safety and judgment', 'Hard limits where they matter: nothing merges itself, risky actions need explicit confirmation, and autonomy is opt-in.'],
     ['Communication', 'The same material is written for a skim (this page), for operators (setup and upgrade guides) and for agents (the skills themselves).']
