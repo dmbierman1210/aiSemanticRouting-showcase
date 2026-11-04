@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copilot Instruction Router - Open showcase</title>
+<meta name="description" content="A semantic routing layer for AI coding assistants: skills that match what you ask, an always-on policy router, and an interactive replay of how a request gets routed.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="#top"><span class="logo" aria-hidden="true">&#9654;</span> Copilot Instruction Router</a>
+    <nav aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#demo">Live replay</a>
+      <a href="#anatomy">Anatomy</a>
+      <a href="#efficiency">Efficiency</a>
+      <a href="#guardrails">Guardrails</a>
+      <a href="#rigor">Rigor</a>
+      <a href="#catalog">Catalog</a>
+    </nav>
+    <button id="theme" class="ghost" type="button" aria-label="Toggle light and dark theme">Theme</button>
+  </div>
+</header>
+
+<main id="main">
+<section class="hero" id="top">
+  <div class="wrap">
+    <span class="pill" id="badge">Open showcase</span>
+    <h1>Describe the task. The right workflow, tools and guardrails load themselves.</h1>
+    <p class="lead">A routing layer for GitHub Copilot and Claude Code: a library of focused <strong>skills</strong> that match to what you ask, a small always-on <strong>policy router</strong>, and the MCP integrations to act on real systems. This page replays how a request gets routed, using the real skill files, with no model calls.</p>
+    <div class="cta">
+      <a class="btn primary" href="#demo">Watch a request get routed</a>
+      <a class="btn" id="repoLink" href="#">View the repository</a>
+    </div>
+    <ul class="stats" id="stats" aria-label="Project numbers"></ul>
+  </div>
+</section>
+
+<section id="how" class="wrap">
+  <h2>How it works</h2>
+  <p class="sub">Three layers, each paying its token cost only when it is needed.</p>
+  <div class="flow" role="img" aria-label="A message passes the always-on router, then the skill catalog, which either loads one skill, consults the playbook when several skills overlap, or loads nothing when none match.">
+    <div class="node msg"><b>Your message</b><small>"Fix this failing build"</small></div>
+    <div class="arrow" aria-hidden="true">&rarr;</div>
+    <div class="node router"><b>Always-on router</b><small>meta-policy only<br>&asymp; <span data-bind="budget.alwaysOnTokens"></span> tokens</small></div>
+    <div class="arrow" aria-hidden="true">&rarr;</div>
+    <div class="node catalog"><b>Skill catalog</b><small><span data-bind="budget.catalogCount"></span> one-line descriptions<br>&asymp; <span data-bind="budget.catalogTokens"></span> tokens</small></div>
+    <div class="arrow" aria-hidden="true">&rarr;</div>
+    <div class="branches">
+      <div class="node ok"><b>One match</b><small>load that one SKILL.md</small></div>
+      <div class="node warn"><b>Overlap</b><small>consult router-playbook</small></div>
+      <div class="node dim"><b>No match</b><small>plain assistant, nothing loaded</small></div>
+    </div>
+  </div>
+  <div class="grid3">
+    <article class="card"><h3>Skills</h3><p>Each skill owns one job and carries its own <code>name</code> and <code>description</code>. The assistant matches on those, so there is no dispatch table to maintain and no per-workflow always-on cost.</p></article>
+    <article class="card"><h3>Always-on router</h3><p>Only rules that must hold in every conversation: load MCP guidance when tools are involved, never re-read what is already loaded, subagent ground rules, and the no-merge rule.</p></article>
+    <article class="card"><h3>On-demand playbook</h3><p>Edge cases a description cannot express: two skills overlap, a task spans phases, nothing matches, or a subagent might help. Read only when one of those fires.</p></article>
+  </div>
+</section>
+
+<section id="demo" class="wrap">
+  <h2>Live replay</h2>
+  <p class="sub">Pick a prompt. The replay shows what loads, what does not, and the workflow the skill will follow. It is pre-computed from <code>tests/skill-triggers.json</code> and the real skill files, so it costs nothing to run again and again.</p>
+  <div class="demo">
+    <div class="picker">
+      <div class="tabs" role="tablist" aria-label="Prompt type">
+        <button role="tab" id="tab-match" aria-selected="true" data-kind="match">Clear matches</button>
+        <button role="tab" id="tab-near" aria-selected="false" data-kind="near">Tricky near-misses</button>
+      </div>
+      <ul id="prompts" class="plist" aria-label="Example prompts"></ul>
+    </div>
+    <div class="termwrap">
+      <div class="termbar">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="termtitle">routing replay</span>
+        <label class="speed">Speed
+          <select id="speed" aria-label="Replay speed"><option value="0.6">Slow</option><option value="1" selected>Normal</option><option value="2.2">Fast</option></select>
+        </label>
+        <button id="replay" class="ghost" type="button">Replay</button>
+        <button id="auto" class="ghost" type="button" aria-pressed="false">Auto-play all</button>
+      </div>
+      <div id="term" class="term" role="log" aria-live="polite" aria-label="Routing replay output" tabindex="0"></div>
+      <p class="note">Token figures are estimates (bytes &divide; 4) taken from the real files. Matching shown here is what the test corpus expects; a real model decides at run time, which is why the corpus is also checked in CI.</p>
+    </div>
+  </div>
+</section>
+
+<section id="anatomy" class="wrap">
+  <h2>Anatomy of a skill</h2>
+  <p class="sub">The real opening of each file: frontmatter the assistant matches on, then the workflow it follows.</p>
+  <div class="anatomy">
+    <div>
+      <div class="tabs" id="exTabs" role="tablist" aria-label="Skill excerpts"></div>
+      <pre class="code" id="exCode" tabindex="0" aria-label="Skill file excerpt"></pre>
+      <p class="note" id="exMore"></p>
+    </div>
+    <aside class="card">
+      <h3 id="exName"></h3>
+      <p class="meta" id="exMeta"></p>
+      <h4>Workflow outline</h4>
+      <ol class="outline" id="exOutline"></ol>
+    </aside>
+  </div>
+  <div class="grid3">
+    <article class="card"><h3>Say when, and when not</h3><p>Every skill states what triggers it and what it is <em>not</em> for, and points to the neighbour that owns the near-miss.</p></article>
+    <article class="card"><h3>Rules with reasons</h3><p>Instructions are specific and checkable: coverage targets, read the code first, confirm before anything destructive, escalate by a fixed ladder.</p></article>
+    <article class="card"><h3>Edited like code</h3><p>Skills are versioned, linted, renamed through a manifest with migration, and refined against a trigger corpus instead of by feel.</p></article>
+  </div>
+</section>
+
+<section id="efficiency" class="wrap">
+  <h2>Efficiency</h2>
+  <p class="sub">Context is the budget. The design spends it only on what the current request needs.</p>
+  <div class="bars" id="bars"></div>
+  <div class="grid3">
+    <article class="card"><h3>Lazy-loaded MCP guidance</h3><p>The MCP guidance used to be one 1,027-line file loaded up front. It is now a <span data-bind="budget.mcpIndexLines"></span>-line index plus one file per server, read only when that server is used.</p></article>
+    <article class="card"><h3>Three escalation tiers</h3><p>Do it inline. For heavy read-only batches, delegate to a cheap in-assistant worker. Hand off to a second agent only when your own budget is the constraint, using a short <code>HANDOFF.md</code> note so nothing is lost.</p></article>
+    <article class="card"><h3>Match the model to the task</h3><p>Pattern-following work (reviews, docs, stories) runs on cheaper models; multi-step reasoning is reserved for stronger ones, and each skill says which.</p></article>
+  </div>
+</section>
+
+<section id="guardrails" class="wrap">
+  <h2>Guardrails</h2>
+  <p class="sub">Autonomy with limits. Each rule is written where agents read it, and a test fails when it drifts.</p>
+  <div class="grid3" id="guardCards"></div>
+</section>
+
+<section id="rigor" class="wrap">
+  <h2>Engineering rigor</h2>
+  <p class="sub">The instructions are treated as production code: <strong data-bind="stats.testSuites"></strong> test suites, <strong data-bind="stats.triggerCases"></strong> prompt cases in the demo corpus, and <strong data-bind="stats.releases"></strong> versioned releases.</p>
+  <div class="tests" id="tests"></div>
+</section>
+
+<section id="catalog" class="wrap">
+  <h2>Skill catalog</h2>
+  <div class="filters">
+    <input id="q" type="search" placeholder="Search skills" aria-label="Search skills">
+    <div class="chips" id="kinds" role="group" aria-label="Filter by kind"></div>
+  </div>
+  <div class="catalog" id="cat"></div>
+</section>
+
+<section id="why" class="wrap">
+  <h2>What this demonstrates</h2>
+  <div class="grid3" id="demonstrates"></div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>Version <span data-bind="version"></span> &middot; generated <span data-bind="generated"></span> by <code>tools/build-showcase.ps1</code> from the repository. No model calls, no external requests.</span>
+    <span id="author"></span>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
