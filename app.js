@@ -214,13 +214,17 @@
       load: { cls: 'l', label: 'loading instructions' },
       work: { cls: 'w', label: 'work' }
     };
+    var rounds = L.assumedPromptingRounds;
+    var promptingParts = [];
+    for (var i = 0; i < rounds; i++) { promptingParts.push(['prompt', request], ['work', work]); }
     var bars = [
-      { name: 'Prompting only', sub: 'a plain agent: your request, then the work', parts: [['prompt', request], ['work', work]] },
-      { name: 'Loading all instructions', sub: 'a trained agent: your request, every instruction file, then the work', parts: [['prompt', request], ['load', everything], ['work', work]] },
-      { name: 'Routing', sub: 'a trained agent: your request, the routing step, only the matching instruction file, then the work', parts: [['prompt', request], ['route', routing], ['load', oneSkill], ['work', work]] }
+      { name: 'Prompting only', sub: 'a plain agent: your request and the work, repeated round after round until it is right', parts: promptingParts },
+      { name: 'Loading all instructions', sub: 'a trained agent: your request, every instruction file, then the work, right the first time', parts: [['prompt', request], ['load', everything], ['work', work]] },
+      { name: 'Routing', sub: 'a trained agent: your request, the routing step, only the matching instruction file, then the work, right the first time', parts: [['prompt', request], ['route', routing], ['load', oneSkill], ['work', work]] }
     ];
     bars.forEach(function (b) { b.total = b.parts.reduce(function (n, p) { return n + p[1]; }, 0); });
     var max = Math.max.apply(null, bars.map(function (b) { return b.total; }));
+    var breakEven = Math.ceil(bars[2].total / (request + work));
     function pct(n) { return Math.round(100 * n / max); }
     function versus(a, b) { var d = Math.round(100 * (1 - a / b)); return d >= 0 ? d + '% less than' : Math.abs(d) + '% more than'; }
     var html = bars.map(function (b) {
@@ -232,9 +236,9 @@
         '<div class="track" role="img" aria-label="' + esc(b.name) + ': ' + pct(b.total) + ' percent of the largest bar">' + track + '</div></div>';
     }).join('');
     html += '<div class="legend"><span><i class="sw p"></i> prompting: your request</span><span><i class="sw r"></i> routing: router policy and skill catalog</span><span><i class="sw l"></i> loading instructions: skill files</span><span><i class="sw w"></i> work (assumed size)</span></div>';
-    html += '<p class="verdict">Routing is <strong>' + versus(bars[2].total, bars[1].total) + '</strong> loading all instructions, and <strong>' + versus(bars[2].total, bars[0].total) + '</strong> prompting only, which is the price of the trained behaviour. On instruction text alone, routing reads <strong>' + D.savePct + '% less</strong> than loading everything.</p>';
+    html += '<p class="verdict">Routing is the most efficient: <strong>' + versus(bars[2].total, bars[1].total) + '</strong> loading all instructions and <strong>' + versus(bars[2].total, bars[0].total) + '</strong> prompting only. It comes out ahead of prompting as soon as the plain agent needs <strong>' + breakEven + ' or more rounds</strong>; the bar assumes ' + rounds + '. On instruction text alone, routing reads <strong>' + D.savePct + '% less</strong> than loading everything.</p>';
     $('#bars').innerHTML = html;
-    $('#formula').textContent = 'How to read this: the teal, blue and purple pieces are measured from the real files in lines (request = one short message; routing = ' + fmt(routing) + ' lines of router policy and skill catalog; one skill = the average, ' + fmt(oneSkill) + ' lines; all instructions = ' + fmt(everything) + ' lines). The hatched work piece is an assumption, about ' + fmt(work) + ' lines of code, tool output and replies for a typical story, drawn the same size in every bar, so the percentages illustrate the shape and are not a measurement. Not drawn: the extra correction rounds an untrained agent usually needs, which would make the first bar larger. Bars are shares of the largest, so no token or cost figure is implied.';
+    $('#formula').textContent = 'How to read this: the blue, teal and purple pieces are measured from the real files in lines (request = one short message; routing = ' + fmt(routing) + ' lines of router policy and skill catalog; one skill = the average, ' + fmt(oneSkill) + ' lines; all instructions = ' + fmt(everything) + ' lines). Two things are assumptions, not measurements: the work (hatched) is about ' + fmt(work) + ' lines of code, tool output and replies per round, and a plain agent needs ' + rounds + ' rounds of request-and-work to reach what a trained agent gets right the first time, from the author\u2019s experience of correcting untrained agents. The percentages therefore illustrate the shape and are not a measurement. Bars are shares of the largest, so no token or cost figure is implied.';
   })();
 
   // ---- Guardrails ----
