@@ -194,7 +194,7 @@
     var rows = [
       ['Always loaded', 'The router policy file', fmt(L.routerLines) + ' lines'],
       ['Seen up front', fmt(L.catalogCount) + ' skill names with one-line descriptions', 'no skill bodies'],
-      ['Loaded on a match', 'One SKILL.md, the one that matches', 'typically ' + fmt(L.avgSkillLines) + ' lines (smallest ' + fmt(L.minSkillLines) + ', largest ' + fmt(L.maxSkillLines) + ')'],
+      ['Loaded on a match', 'Only the skills the request needs, usually one', 'typically ' + fmt(L.avgSkillLines) + ' lines each (smallest ' + fmt(L.minSkillLines) + ', largest ' + fmt(L.maxSkillLines) + ')'],
       ['Stays on disk', 'Every other skill file, until a request needs it', fmt(L.totalSkillLines) + ' lines across all ' + fmt(L.skillFiles) + ' skill files'],
       ['Only when a server is used', 'MCP guidance: an index plus one file per server', fmt(L.mcpIndexLines) + '-line index, ' + fmt(L.mcpFiles) + ' server files']
     ];
@@ -233,7 +233,7 @@
         return '<div class="seg ' + s.cls + '" style="width:' + w.toFixed(2) + '%" title="' + esc(s.label) + '">' + (w >= 9 ? esc(s.label) : '') + '</div>';
       }).join('');
       var chip = i === 0 ? '' : (function () { var c = change(b); return '<span class="chip ' + c.cls + '">' + c.text + '</span>'; })();
-      return '<div class="barrow' + (i === 2 ? ' hero' : '') + '"><b>' + esc(b.name) + chip + '<span class="bsub">' + esc(b.sub) + '</span></b>' +
+      return '<div class="barrow' + (i === 2 ? ' best' : '') + '"><b>' + esc(b.name) + chip + '<span class="bsub">' + esc(b.sub) + '</span></b>' +
         '<div class="track" role="img" aria-label="' + esc(b.name) + (i === 0 ? '' : ', ' + change(b).text.replace('\u2212', 'minus ') + ' compared with prompting only') + '">' + track + '</div></div>';
     }).join('');
     html += '<div class="legend"><span><i class="sw p"></i> your request</span><span><i class="sw r"></i> routing</span><span><i class="sw l"></i> loading instructions</span><span><i class="sw w"></i> the work</span></div>';
@@ -242,8 +242,8 @@
     $('#winstats').innerHTML =
       stat(Math.round(100 * (1 - bars[2].total / bars[0].total)) + '% less', 'than prompting only') +
       stat(Math.round(100 * (1 - bars[2].total / bars[1].total)) + '% less', 'than loading every instruction file') +
-      stat('1 of ' + fmt(L.skillFiles), 'skill files read per request');
-    $('#fine').textContent = 'Illustrative comparison. Instruction sizes are measured from the repository; the size of the work (about ' + fmt(work) + ' lines per round) and the ' + rounds + ' rounds a plain agent needs are assumptions. Routing pulls ahead of plain prompting from round ' + breakEven + ' on.';
+      stat('On demand', 'only the skills a request needs are loaded, never all ' + fmt(L.skillFiles) + ' every time');
+    $('#fine').textContent = 'Illustrative comparison. Instruction sizes are measured from the repository; the size of the work (about ' + fmt(work) + ' lines per round) and the ' + rounds + ' rounds a plain agent needs are assumptions. Routing shows a typical request that needs one skill; a request that needs more loads more, and only those. Routing pulls ahead of plain prompting from round ' + breakEven + ' on.';
   })();
 
   // ---- Guardrails ----

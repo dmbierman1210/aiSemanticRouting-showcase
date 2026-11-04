@@ -43,7 +43,7 @@
 <section id="how" class="wrap">
   <h2>How it works</h2>
   <p class="sub">Three layers, each loaded only when it is needed.</p>
-  <div class="flow" role="img" aria-label="A message passes the always-on router, then the skill catalog, which either loads one skill, consults the playbook when several skills overlap, or loads nothing when none match.">
+  <div class="flow" role="img" aria-label="A message passes the always-on router, then the skill catalog, which either loads the skills it needs, consults the playbook when several skills overlap, or loads nothing when none match.">
     <div class="node msg"><b>Your message</b><small>"Fix this failing build"</small></div>
     <div class="arrow" aria-hidden="true">&rarr;</div>
     <div class="node router"><b>Always-on router</b><small>meta-policy only<br><span data-bind="loads.routerLines"></span> lines</small></div>
@@ -51,7 +51,7 @@
     <div class="node catalog"><b>Skill catalog</b><small><span data-bind="loads.catalogCount"></span> names and one-line descriptions<br>no skill bodies</small></div>
     <div class="arrow" aria-hidden="true">&rarr;</div>
     <div class="branches">
-      <div class="node ok"><b>One match</b><small>load that one SKILL.md</small></div>
+      <div class="node ok"><b>Match</b><small>load only the skills it needs</small></div>
       <div class="node warn"><b>Overlap</b><small>consult router-playbook</small></div>
       <div class="node dim"><b>No match</b><small>plain assistant, nothing loaded</small></div>
     </div>
