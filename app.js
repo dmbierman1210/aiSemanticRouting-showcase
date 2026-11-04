@@ -202,33 +202,39 @@
       return '<tr><th scope="row">' + esc(r[0]) + '</th><td>' + esc(r[1]) + '</td><td class="n">' + esc(r[2]) + '</td></tr>';
     }).join('') + '</tbody></table><p class="note">Line counts of the files in this repository. They are not token counts.</p>';
 
-    var instr2 = L.routerLines + L.totalSkillLines;
-    var instr3 = L.routerLines + L.catalogLines + L.avgSkillLines;
-    D.savePct = Math.round(100 * (1 - instr3 / instr2));
-    function pctLess(a, b) { var d = Math.round(100 * (1 - a / b)); return d >= 0 ? d + '% less than' : Math.abs(d) + '% more than'; }
-    function render() {
-      var t1 = +$('#t1').value, t2 = +$('#t2').value, c = +$('#c').value;
-      $('#o-t1').textContent = t1; $('#o-t2').textContent = t2; $('#o-c').textContent = fmt(c);
-      var conv = function (t) { return c * t * (t + 1) / 2; };
-      var bars = [
-        { name: 'Prompting', sub: 'plain agent, corrected over and over', instr: 0, conv: conv(t1), attempts: t1 },
-        { name: 'Loading instructions', sub: 'trained agent, every instruction file every time', instr: t2 * instr2, conv: conv(t2), attempts: t2 },
-        { name: 'Routing', sub: 'trained agent, only the files the request needs', instr: t2 * instr3, conv: conv(t2), attempts: t2 }
-      ];
-      bars.forEach(function (b) { b.total = b.instr + b.conv; });
-      var max = Math.max.apply(null, bars.map(function (b) { return b.total; }));
-      var html = bars.map(function (b, i) {
-        var w = 100 * b.total / max, wi = 100 * b.instr / max, wc = 100 * b.conv / max;
-        return '<div class="barrow"><b>' + esc(b.name) + ' <span class="pct">' + Math.round(w) + '%</span><span class="bsub">' + esc(b.sub) + '</span></b>' +
-          '<div class="track" role="img" aria-label="' + esc(b.name) + ': ' + Math.round(w) + ' percent of the largest bar"><div class="seg instr" style="width:' + wi.toFixed(2) + '%"></div><div class="seg conv" style="width:' + wc.toFixed(2) + '%"></div></div></div>';
+    var request = 1;
+    var work = L.assumedWorkLines;
+    var routing = L.routerLines + L.catalogLines;
+    var oneSkill = L.avgSkillLines;
+    var everything = L.routerLines + L.totalSkillLines;
+    D.savePct = Math.round(100 * (1 - (routing + oneSkill) / everything));
+    var segs = {
+      prompt: { cls: 'p', label: 'prompting' },
+      route: { cls: 'r', label: 'routing' },
+      load: { cls: 'l', label: 'loading instructions' },
+      work: { cls: 'w', label: 'work' }
+    };
+    var bars = [
+      { name: 'Prompting only', sub: 'a plain agent: your request, then the work', parts: [['prompt', request], ['work', work]] },
+      { name: 'Loading all instructions', sub: 'a trained agent: your request, every instruction file, then the work', parts: [['prompt', request], ['load', everything], ['work', work]] },
+      { name: 'Routing', sub: 'a trained agent: your request, the routing step, only the matching instruction file, then the work', parts: [['prompt', request], ['route', routing], ['load', oneSkill], ['work', work]] }
+    ];
+    bars.forEach(function (b) { b.total = b.parts.reduce(function (n, p) { return n + p[1]; }, 0); });
+    var max = Math.max.apply(null, bars.map(function (b) { return b.total; }));
+    function pct(n) { return Math.round(100 * n / max); }
+    function versus(a, b) { var d = Math.round(100 * (1 - a / b)); return d >= 0 ? d + '% less than' : Math.abs(d) + '% more than'; }
+    var html = bars.map(function (b) {
+      var track = b.parts.map(function (p) {
+        var s = segs[p[0]], w = 100 * p[1] / max, tip = s.label + ': ' + (100 * p[1] / max < 1 ? 'under 1' : Math.round(100 * p[1] / max)) + '% of the largest bar';
+        return '<div class="seg ' + s.cls + '" style="width:' + w.toFixed(2) + '%" title="' + esc(tip) + '">' + (w >= 9 ? esc(s.label) : '') + '</div>';
       }).join('');
-      html += '<div class="legend"><span><i class="sw instr"></i> instruction text read each attempt (measured file sizes)</span><span><i class="sw conv"></i> conversation re-read each attempt (assumed)</span></div>';
-      html += '<p class="verdict">Routing is <strong>' + pctLess(bars[2].total, bars[1].total) + '</strong> loading all instructions and <strong>' + pctLess(bars[2].total, bars[0].total) + '</strong> plain prompting, <em>under the assumptions below</em>. Measured on its own, routing puts <strong>' + D.savePct + '% less</strong> instruction text in front of the agent per attempt than loading everything.</p>';
-      $('#bars').innerHTML = html;
-      $('#formula').textContent = 'Model: each attempt re-reads the instruction text plus every earlier attempt. Cost = attempts \u00d7 instruction lines + conversation \u00d7 attempts \u00d7 (attempts + 1) \u00f7 2. Instruction lines per attempt: prompting 0, loading ' + fmt(instr2) + ' (router plus all ' + fmt(L.skillFiles) + ' skill files), routing ' + fmt(instr3) + ' (router, ' + fmt(L.catalogCount) + ' catalog entries, one average skill). Bars are percentages of the largest, so no token or cost number is implied; real usage depends on the model and your plan.';
-    }
-    ['t1', 't2', 'c'].forEach(function (id) { $('#' + id).addEventListener('input', render); });
-    render();
+      return '<div class="barrow"><b>' + esc(b.name) + ' <span class="pct">' + pct(b.total) + '%</span><span class="bsub">' + esc(b.sub) + '</span></b>' +
+        '<div class="track" role="img" aria-label="' + esc(b.name) + ': ' + pct(b.total) + ' percent of the largest bar">' + track + '</div></div>';
+    }).join('');
+    html += '<div class="legend"><span><i class="sw p"></i> prompting: your request</span><span><i class="sw r"></i> routing: router policy and skill catalog</span><span><i class="sw l"></i> loading instructions: skill files</span><span><i class="sw w"></i> work (assumed size)</span></div>';
+    html += '<p class="verdict">Routing is <strong>' + versus(bars[2].total, bars[1].total) + '</strong> loading all instructions, and <strong>' + versus(bars[2].total, bars[0].total) + '</strong> prompting only, which is the price of the trained behaviour. On instruction text alone, routing reads <strong>' + D.savePct + '% less</strong> than loading everything.</p>';
+    $('#bars').innerHTML = html;
+    $('#formula').textContent = 'How to read this: the teal, blue and purple pieces are measured from the real files in lines (request = one short message; routing = ' + fmt(routing) + ' lines of router policy and skill catalog; one skill = the average, ' + fmt(oneSkill) + ' lines; all instructions = ' + fmt(everything) + ' lines). The hatched work piece is an assumption, about ' + fmt(work) + ' lines of code, tool output and replies for a typical story, drawn the same size in every bar, so the percentages illustrate the shape and are not a measurement. Not drawn: the extra correction rounds an untrained agent usually needs, which would make the first bar larger. Bars are shares of the largest, so no token or cost figure is implied.';
   })();
 
   // ---- Guardrails ----
