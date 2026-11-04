@@ -218,29 +218,32 @@
     var promptingParts = [];
     for (var i = 0; i < rounds; i++) { promptingParts.push(['prompt', request], ['work', work]); }
     var bars = [
-      { name: 'Prompting only', sub: 'a plain agent: your request and the work, repeated round after round until it is right', parts: promptingParts },
-      { name: 'Loading all instructions', sub: 'a trained agent: your request, every instruction file, then the work, right the first time', parts: [['prompt', request], ['load', everything], ['work', work]] },
-      { name: 'Routing', sub: 'a trained agent: your request, the routing step, only the matching instruction file, then the work, right the first time', parts: [['prompt', request], ['route', routing], ['load', oneSkill], ['work', work]] }
+      { name: 'Prompting only', sub: 'The default: ask, correct, ask again', parts: promptingParts },
+      { name: 'Loading every instruction', sub: 'Trained, but it reads everything, every time', parts: [['prompt', request], ['load', everything], ['work', work]] },
+      { name: 'Routing', sub: 'Trained, and it reads only what the request needs', parts: [['prompt', request], ['route', routing], ['load', oneSkill], ['work', work]] }
     ];
     bars.forEach(function (b) { b.total = b.parts.reduce(function (n, p) { return n + p[1]; }, 0); });
     var max = Math.max.apply(null, bars.map(function (b) { return b.total; }));
     var base = bars[0].total;
     var breakEven = Math.ceil(bars[2].total / (request + work));
-    function pct(n) { return Math.round(100 * n / base); }
-    function versus(a, b) { var d = Math.round(100 * (1 - a / b)); return d >= 0 ? d + '% less than' : Math.abs(d) + '% more than'; }
-    var markerAt = (100 * base / max).toFixed(2);
-    var html = bars.map(function (b) {
+    function change(b) { var d = Math.round(100 * (b.total / base - 1)); return d >= 0 ? { cls: 'bad', text: '+' + d + '%' } : { cls: 'good', text: '\u2212' + Math.abs(d) + '%' }; }
+    var html = bars.map(function (b, i) {
       var track = b.parts.map(function (p) {
-        var s = segs[p[0]], w = 100 * p[1] / max, tip = s.label + ': ' + (100 * p[1] / base < 1 ? 'under 1' : Math.round(100 * p[1] / base)) + '% of prompting only';
-        return '<div class="seg ' + s.cls + '" style="width:' + w.toFixed(2) + '%" title="' + esc(tip) + '">' + (w >= 9 ? esc(s.label) : '') + '</div>';
+        var s = segs[p[0]], w = 100 * p[1] / max;
+        return '<div class="seg ' + s.cls + '" style="width:' + w.toFixed(2) + '%" title="' + esc(s.label) + '">' + (w >= 9 ? esc(s.label) : '') + '</div>';
       }).join('');
-      return '<div class="barrow"><b>' + esc(b.name) + ' <span class="pct">' + pct(b.total) + '%</span><span class="bsub">' + esc(b.sub) + '</span></b>' +
-        '<div class="track" role="img" aria-label="' + esc(b.name) + ': ' + pct(b.total) + ' percent of prompting only">' + track + '<i class="marker" style="left:' + markerAt + '%"></i></div></div>';
+      var chip = i === 0 ? '' : (function () { var c = change(b); return '<span class="chip ' + c.cls + '">' + c.text + '</span>'; })();
+      return '<div class="barrow' + (i === 2 ? ' hero' : '') + '"><b>' + esc(b.name) + chip + '<span class="bsub">' + esc(b.sub) + '</span></b>' +
+        '<div class="track" role="img" aria-label="' + esc(b.name) + (i === 0 ? '' : ', ' + change(b).text.replace('\u2212', 'minus ') + ' compared with prompting only') + '">' + track + '</div></div>';
     }).join('');
-    html += '<div class="legend"><span><i class="sw p"></i> prompting: your request</span><span><i class="sw r"></i> routing: router policy and skill catalog</span><span><i class="sw l"></i> loading instructions: skill files</span><span><i class="sw w"></i> work (assumed size)</span><span><i class="sw m"></i> 100% = prompting only</span></div>';
-    html += '<p class="verdict">Routing is the most efficient: <strong>' + versus(bars[2].total, bars[0].total) + '</strong> prompting only and <strong>' + versus(bars[2].total, bars[1].total) + '</strong> loading all instructions, which on its own is <strong>' + versus(bars[1].total, bars[0].total).replace(' than', '</strong> than') + ' prompting only. Routing comes out ahead of prompting as soon as the plain agent needs <strong>' + breakEven + ' or more rounds</strong>; the first bar assumes ' + rounds + '. On instruction text alone, routing reads <strong>' + D.savePct + '% less</strong> than loading everything.</p>';
+    html += '<div class="legend"><span><i class="sw p"></i> your request</span><span><i class="sw r"></i> routing</span><span><i class="sw l"></i> loading instructions</span><span><i class="sw w"></i> the work</span></div>';
     $('#bars').innerHTML = html;
-    $('#formula').textContent = 'How to read this: every percentage is relative to prompting only, which is 100%. The blue, teal and purple pieces are measured from the real files in lines (request = one short message; routing = ' + fmt(routing) + ' lines of router policy and skill catalog; one skill = the average, ' + fmt(oneSkill) + ' lines; all instructions = ' + fmt(everything) + ' lines). Two things are assumptions, not measurements: the work (hatched) is about ' + fmt(work) + ' lines of code, tool output and replies per round, and a plain agent needs ' + rounds + ' rounds of request-and-work to reach what a trained agent gets right the first time, from the author\u2019s experience of correcting untrained agents. The percentages therefore illustrate the shape and are not a measurement, and no token or cost figure is implied.';
+    function stat(big, small) { return '<div class="stat"><b>' + big + '</b><span>' + small + '</span></div>'; }
+    $('#winstats').innerHTML =
+      stat(Math.round(100 * (1 - bars[2].total / bars[0].total)) + '% less', 'than prompting only') +
+      stat(Math.round(100 * (1 - bars[2].total / bars[1].total)) + '% less', 'than loading every instruction file') +
+      stat('1 of ' + fmt(L.skillFiles), 'skill files read per request');
+    $('#fine').textContent = 'Illustrative comparison. Instruction sizes are measured from the repository; the size of the work (about ' + fmt(work) + ' lines per round) and the ' + rounds + ' rounds a plain agent needs are assumptions. Routing pulls ahead of plain prompting from round ' + breakEven + ' on.';
   })();
 
   // ---- Guardrails ----
