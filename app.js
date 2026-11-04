@@ -34,8 +34,8 @@
     var v = get(el.getAttribute('data-bind'));
     el.textContent = typeof v === 'number' ? fmt(v) : (v == null ? '' : v);
   });
-  $('#repoLink').href = D.repoUrl;
-  $('#author').innerHTML = 'Built by Dustin Bierman' + (D.profileUrl ? ' &middot; <a href="' + esc(D.profileUrl) + '">GitHub profile</a>' : '') + ' &middot; <a href="' + esc(D.repoUrl) + '">Repository</a>';
+  if (D.repoUrl) { $('#repoLink').href = D.repoUrl; } else { $('#repoLink').hidden = true; }
+  $('#author').innerHTML = 'Built by Dustin Bierman' + (D.profileUrl ? ' &middot; <a href="' + esc(D.profileUrl) + '">GitHub profile</a>' : '') + (D.repoUrl ? ' &middot; <a href="' + esc(D.repoUrl) + '">Repository</a>' : '');
 
   // Hero stats
   [[D.stats.skills, 'skills'], [D.stats.testSuites, 'test suites'], [D.stats.triggerCases, 'routing cases'], [D.stats.mcpServers, 'MCP servers'], [D.stats.releases, 'releases'], ['v' + D.version, 'current']].forEach(function (s) {
