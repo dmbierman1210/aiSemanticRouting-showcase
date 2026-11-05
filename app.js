@@ -79,7 +79,7 @@
     }
     var sk = p.skill ? byName[p.skill] : null;
     if (!sk && p.external) {
-      s.push({ tag: 'match', cls: 'k-match', html: '<b>' + esc(p.external) + '</b> <em>(built-in, outside this router)</em><br>' + esc(p.looksLike) + ' defers to it by design for this kind of request.', wait: 900 });
+      s.push({ tag: 'match', cls: 'k-match', html: '<b>' + esc(p.external) + '</b> <em>(built-in, outside this router)</em><br>This router\u2019s ' + esc(p.deferredBy) + ' defers to it by design for this kind of request.', wait: 900 });
       s.push({ tag: 'skipped', cls: 'k-skip', html: 'no skill file from this router is opened', wait: 700 });
       s.push({ tag: 'done', cls: 'k-done', html: 'handed to the right owner.', wait: 0 });
       return s;
@@ -273,7 +273,7 @@
 
   // ---- Catalog ----
   var kindFilter = 'all';
-  var kinds = [['all', 'All'], ['workflow', 'Workflow'], ['helper', 'Helper'], ['experimental', 'Experimental']];
+  var kinds = [['all', 'All'], ['workflow', 'Workflow'], ['maintainer', 'Maintainer'], ['helper', 'Helper'], ['experimental', 'Experimental']];
   kinds.forEach(function (k) {
     var b = document.createElement('button');
     b.type = 'button'; b.textContent = k[1]; b.setAttribute('aria-pressed', k[0] === 'all' ? 'true' : 'false');
