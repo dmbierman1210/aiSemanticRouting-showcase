@@ -58,9 +58,9 @@ button.ghost[aria-pressed="true"] { background: var(--accent); color: #04110f; b
 .card p { margin: .3rem 0 0; color: var(--muted); }
 .card .ev { display: inline-block; margin-top: .6rem; font-family: var(--mono); font-size: .78rem; color: var(--accent); }
 
-.flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+.flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
 .flow > * { flex: 0 0 auto; }
-.node { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; width: max-content; max-width: 210px; display: flex; flex-direction: column; justify-content: center; }
+.node { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: max-content; max-width: 178px; display: flex; flex-direction: column; justify-content: center; }
 .node small { color: var(--muted); font-size: .8rem; }
 .node.router { border-color: var(--accent); }
 .node.ok { border-color: var(--ok); } .node.warn { border-color: var(--warn); } .node.dim { border-style: dashed; }
@@ -160,7 +160,7 @@ button.ghost[aria-pressed="true"] { background: var(--accent); color: #04110f; b
 .skill { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
 .skill h3 { font-family: var(--mono); font-size: .95rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .kind { font: .68rem var(--sans); text-transform: uppercase; letter-spacing: .05em; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
-.kind.experimental { color: var(--warn); border-color: var(--warn); } .kind.helper { color: var(--accent); border-color: var(--accent); }
+.kind.experimental { color: var(--warn); border-color: var(--warn); } .kind.helper { color: var(--accent); border-color: var(--accent); } .kind.maintainer { color: #c4b5fd; border-color: #c4b5fd; }
 .skill p { margin: .3rem 0 0; color: var(--muted); font-size: .88rem; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .skill details p { display: block; }
 .skill summary { cursor: pointer; color: var(--accent); font-size: .82rem; margin-top: 6px; }
