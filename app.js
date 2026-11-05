@@ -69,27 +69,26 @@
 
   function steps(p) {
     var s = [];
-    var L = D.loads;
     s.push({ tag: 'you', cls: 'k-you', html: esc(p.prompt), wait: 700 });
-    s.push({ tag: 'router', cls: 'k-router', html: 'always-on policy loaded <em>(' + fmt(L.routerLines) + ' lines)</em>', wait: 650 });
-    s.push({ tag: 'catalog', cls: 'k-load', html: 'scanning ' + fmt(L.catalogCount) + ' skill names and descriptions. No skill file is opened yet.', wait: 800 });
+    s.push({ tag: 'router', cls: 'k-router', html: 'always-on policy loaded', wait: 650 });
+    s.push({ tag: 'catalog', cls: 'k-load', html: 'scanning the skill names and descriptions. No skill file is opened yet.', wait: 800 });
     if (p.kind === 'near') {
       s.push({ tag: 'overlap', cls: 'k-warn', html: 'wording overlaps <b>' + esc(p.looksLike) + '</b>. Boundary check against its "not for" scope...', wait: 900 });
     }
     var sk = p.skill ? byName[p.skill] : null;
     if (!sk) {
       s.push({ tag: 'no match', cls: 'k-warn', html: 'no skill owns this. Falls through to <b>router-playbook</b> "No-Match Behavior": proceed as a plain assistant.', wait: 800 });
-      s.push({ tag: 'skipped', cls: 'k-skip', html: 'none of the ' + fmt(L.skillFiles) + ' skill files is opened', wait: 700 });
+      s.push({ tag: 'skipped', cls: 'k-skip', html: 'no skill file is opened', wait: 700 });
       s.push({ tag: 'done', cls: 'k-done', html: 'routed without loading a skill.', wait: 0 });
       return s;
     }
     s.push({ tag: 'match', cls: 'k-match', html: '<b>' + esc(sk.name) + '</b><br>' + esc(shorten(sk.description, 190)), wait: 900 });
-    s.push({ tag: 'load', cls: 'k-load', html: 'SKILL.md loaded: ' + fmt(sk.lines) + ' lines', wait: 800 });
+    s.push({ tag: 'load', cls: 'k-load', html: 'SKILL.md loaded', wait: 800 });
     if (sk.outline.length) {
       s.push({ tag: 'workflow', cls: 'k-load', html: 'the skill will now follow:', wait: 450 });
       sk.outline.slice(0, 6).forEach(function (h, i) { s.push({ tag: '', cls: 'sub', html: (i + 1) + '. ' + esc(h), wait: 260 }); });
     }
-    s.push({ tag: 'skipped', cls: 'k-skip', html: fmt(L.skillFiles - 1) + ' other skill files stay on disk <em>(' + fmt(L.totalSkillLines - sk.lines) + ' lines not opened)</em>', wait: 800 });
+    s.push({ tag: 'skipped', cls: 'k-skip', html: 'every other skill file stays on disk', wait: 800 });
     s.push({ tag: 'done', cls: 'k-done', html: 'routed.', wait: 0 });
     return s;
   }
