@@ -54,7 +54,8 @@
       var li = document.createElement('li');
       var b = document.createElement('button');
       b.type = 'button';
-      b.innerHTML = esc(p.prompt) + '<span class="to' + (p.skill ? '' : ' none') + '">&rarr; ' + esc(p.skill || 'no skill') + '</span>';
+      var owner = p.skill || (p.external ? p.external + ' (built-in)' : 'no skill');
+      b.innerHTML = esc(p.prompt) + '<span class="to' + (p.skill || p.external ? '' : ' none') + '">&rarr; ' + esc(owner) + '</span>';
       b.addEventListener('click', function () { auto = false; syncAuto(); select(p); });
       li.appendChild(b);
       list.appendChild(li);
@@ -73,9 +74,16 @@
     s.push({ tag: 'router', cls: 'k-router', html: 'always-on policy loaded', wait: 650 });
     s.push({ tag: 'catalog', cls: 'k-load', html: 'scanning the skill names and descriptions. No skill file is opened yet.', wait: 800 });
     if (p.kind === 'near') {
-      s.push({ tag: 'overlap', cls: 'k-warn', html: 'wording overlaps <b>' + esc(p.looksLike) + '</b>. Boundary check against its "not for" scope...', wait: 900 });
+      var overlaps = '<b>' + esc(p.looksLike) + '</b>' + (p.alsoLooksLike ? ' and <b>' + esc(p.alsoLooksLike) + '</b>' : '');
+      s.push({ tag: 'overlap', cls: 'k-warn', html: 'wording overlaps ' + overlaps + '. Boundary check against their "not for" scope...', wait: 900 });
     }
     var sk = p.skill ? byName[p.skill] : null;
+    if (!sk && p.external) {
+      s.push({ tag: 'match', cls: 'k-match', html: '<b>' + esc(p.external) + '</b> <em>(built-in, outside this router)</em><br>' + esc(p.looksLike) + ' defers to it by design for this kind of request.', wait: 900 });
+      s.push({ tag: 'skipped', cls: 'k-skip', html: 'no skill file from this router is opened', wait: 700 });
+      s.push({ tag: 'done', cls: 'k-done', html: 'handed to the right owner.', wait: 0 });
+      return s;
+    }
     if (!sk) {
       s.push({ tag: 'no match', cls: 'k-warn', html: 'no skill owns this. Falls through to <b>router-playbook</b> "No-Match Behavior": proceed as a plain assistant.', wait: 800 });
       s.push({ tag: 'skipped', cls: 'k-skip', html: 'no skill file is opened', wait: 700 });
